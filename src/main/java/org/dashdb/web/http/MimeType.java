@@ -6,7 +6,9 @@ public enum MimeType {
     CSS("css", "text/css"),
     HTML("html", "text/html"),
     JS("js", "text/javascript"),
-    OSTREAM("", "application/octet-stream");
+    OSTREAM("", "application/octet-stream"),
+//    FORM("", "application/x-www-form-urlencoded");
+    ;
 
     private final String extension;
     private final String type;

@@ -15,6 +15,7 @@ public class HttpRequest {
 
     private HttpRequestLine httpRequestLine;
     private Map<String, HttpHeader> httpHeaders = new HashMap<>();
+    Map<String, String> formData = new HashMap<>();
 
     public HttpRequestLine getHttpRequestLine() {
         return httpRequestLine;
@@ -30,6 +31,14 @@ public class HttpRequest {
 
     public void setHttpHeaders(Map<String, HttpHeader> httpHeaders) {
         this.httpHeaders = httpHeaders;
+    }
+
+    public Map<String, String> getFormData() {
+        return formData;
+    }
+
+    public void setFormData(Map<String, String> formData) {
+        this.formData = formData;
     }
 
     public boolean hasHeader(String headerName) {

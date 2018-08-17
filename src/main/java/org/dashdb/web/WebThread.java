@@ -86,7 +86,6 @@ public class WebThread implements Runnable {
         HttpRequestLine requestLine = httpRequest.getHttpRequestLine();
 
         if (Arrays.asList(HttpMethod.GET, HttpMethod.POST).contains(requestLine.getHttpMethod())) {
-            // TODO make keepAlive class level
             keepAlive = httpRequest.hasHeader("connection", "keep-alive");
 
             String uri = requestLine.getUri();
@@ -206,13 +205,13 @@ public class WebThread implements Runnable {
 
     private HttpRequest parseRequest() {
         // read request line
-        HttpRequestLine httpRequestLine = parseRequestLine();
+        HttpRequestLine httpRequestLine = readRequestLine();
 
         if (httpRequestLine == null)
             throw new RuntimeException("invalid request");
 
         // read request headers
-        Map<String, HttpHeader> headers = parseRequestHeader();
+        Map<String, HttpHeader> headers = readRequestHeader();
 
         HttpRequest httpRequest = new HttpRequest();
         httpRequest.setHttpRequestLine(httpRequestLine);
@@ -221,28 +220,14 @@ public class WebThread implements Runnable {
         // read form data
         if (httpRequest.hasHeader("content-type", "application/x-www-form-urlencoded")) {
             HttpHeader contentLengthHeader = httpRequest.getHttpHeaders().get("content-length");
-            if (contentLengthHeader != null) {
-                // TODO make it nice
-                try {
-                    Integer contentLength = Integer.valueOf(contentLengthHeader.getValue());
-
-                    byte[] bytes = new byte[contentLength];
-                    try {
-                        int read = inputStream.read(bytes);
-                        System.out.println(new String(bytes));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                } catch (NumberFormatException e) {
-                    logger.warn("Invalid header value");
-                }
-            }
+            Map<String, String> formData = readFormData(contentLengthHeader);
+            httpRequest.setFormData(formData);
         }
 
         return httpRequest;
     }
 
-    private HttpRequestLine parseRequestLine() {
+    private HttpRequestLine readRequestLine() {
         String line = readLine();
 
         String[] requestLine = line.split(" ");
@@ -257,7 +242,7 @@ public class WebThread implements Runnable {
         return new HttpRequestLine(method, requestLine[1], requestLine[2]);
     }
 
-    private Map<String, HttpHeader> parseRequestHeader() {
+    private Map<String, HttpHeader> readRequestHeader() {
         Map<String, HttpHeader> headers = new HashMap<>();
 
         while (true) {
@@ -279,6 +264,45 @@ public class WebThread implements Runnable {
         }
 
         return headers;
+    }
+
+    private Map<String, String> readFormData(HttpHeader contentLengthHeader) {
+        HashMap<String, String> data = new HashMap<>();
+
+        if (contentLengthHeader == null)
+            return data;
+
+        int length = 0;
+        try {
+            length = Integer.valueOf(contentLengthHeader.getValue());
+        } catch (NumberFormatException e) {
+            logger.warn("invalid header value");
+        }
+
+        if (length == 0)
+            return data;
+
+        byte[] bytes = new byte[length];
+        try {
+            inputStream.read();
+
+            for (int position = 0; position < length;) {
+                position = inputStream.read(bytes, position, length - position);
+            }
+        } catch (IOException e) {
+            logger.warn("invalid header value", e);
+        }
+
+        String str = new String(bytes, Charset.defaultCharset());
+        String[] pairs = str.split("&");
+        for (String pair : pairs) {
+            int i = pair.indexOf("=");
+            String name = pair.substring(0, i);
+            String value = pair.substring(i, pair.length());
+            data.put(name, StringUtils.urlDecode(value));
+        }
+
+        return data;
     }
 
     public byte[] readFile(String file) {

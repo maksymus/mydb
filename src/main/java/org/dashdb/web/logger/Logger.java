@@ -21,4 +21,9 @@ public class Logger {
     public void warn(String message) {
         System.out.println(message);
     }
+
+    public void warn(String message, Throwable e) {
+        System.out.println(message);
+        e.printStackTrace();
+    }
 }
