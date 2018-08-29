@@ -57,7 +57,7 @@ public class Lexer {
                 }
             }
         } catch (IllegalAccessException e) {
-            throw new RuntimeException("failed to init lexer", e);
+            throw new ParserException("failed to init lexer", e);
         }
     }
 
@@ -70,31 +70,36 @@ public class Lexer {
     }
 
     public Token getNextToken() {
-        if (tokenReadPosition >= preprocessedSql.length)
-            throw new RuntimeException("parse exception: token pointer past expression length");
+        try {
+            if (tokenReadPosition >= preprocessedSql.length)
+                throw new ParserException("parse exception: token pointer past expression length");
 
-        while (charTypes[tokenReadPosition] == CharType.NONE)
-            tokenReadPosition++;
+            while (charTypes[tokenReadPosition] == CharType.NONE)
+                tokenReadPosition++;
 
-        CharType charType = this.charTypes[tokenReadPosition];
+            CharType charType = this.charTypes[tokenReadPosition];
 
-        if (charType == CharType.SPECIAL1) {
-            return tokenizeSpecial1(tokenReadPosition);
-        } else if (charType == CharType.SPECIAL2) {
-            return tokenizeSpecial2(tokenReadPosition);
-        } else if (charType == CharType.NAME) {
-            return tokenizeName(tokenReadPosition);
-        } else if (charType == CharType.NUMBER) {
-            return tokenizeNumber(tokenReadPosition);
-        } else if (charType == CharType.DOT) {
-            return tokenizeDot(tokenReadPosition);
-        } else if (charType == CharType.QT) {
-            return tokenizeString(tokenReadPosition);
-        } else if (charType == CharType.END) {
-            return Token.END;
+            if (charType == CharType.SPECIAL1) {
+                return tokenizeSpecial1(tokenReadPosition);
+            } else if (charType == CharType.SPECIAL2) {
+                return tokenizeSpecial2(tokenReadPosition);
+            } else if (charType == CharType.NAME) {
+                return tokenizeName(tokenReadPosition);
+            } else if (charType == CharType.NUMBER) {
+                return tokenizeNumber(tokenReadPosition);
+            } else if (charType == CharType.DOT) {
+                return tokenizeDot(tokenReadPosition);
+            } else if (charType == CharType.QT) {
+                return tokenizeString(tokenReadPosition);
+            } else if (charType == CharType.END) {
+                return Token.END;
+            }
+
+            throw new ParserException("unknown token at position " + tokenReadPosition);
+        } catch (ParserException e) {
+            tokenReadPosition = 0;
+            throw e;
         }
-
-        throw new RuntimeException("parse exception: unknown token at position " + tokenReadPosition);
     }
 
     /**
@@ -189,18 +194,18 @@ public class Lexer {
 
         while (true) {
             if (strPosition >= originalSql.length())
-                throw new RuntimeException("parse exception: closing quote missing for string");
+                throw new ParserException("closing quote missing for string");
 
             charTypes[strPosition] = CharType.STRING;
 
-            char currLexem = preprocessedSql[strPosition];
-            char nextLexem = preprocessedSql[strPosition + 1];
+            char currChar = preprocessedSql[strPosition];
+            char nextChar = preprocessedSql[strPosition + 1];
 
-            if (currLexem == '\'' && nextLexem == '\'') {
+            if (currChar == '\'' && nextChar == '\'') {
                 charTypes[strPosition] = CharType.EQT;
                 charTypes[strPosition + 1] = CharType.EQT;
                 strPosition++;
-            } else if (currLexem == '\'') {
+            } else if (currChar == '\'') {
                 break;
             }
 
@@ -273,9 +278,10 @@ public class Lexer {
             case '=': return Token.EQUALS;
             case '<': return Token.LESS;
             case '>': return Token.MORE;
+            case '!': return Token.NOTSIGN;
         }
 
-        throw new RuntimeException("parse exception: wrong special token at position: " + position);
+        throw new ParserException("wrong special token at position: " + position);
     }
 
     private Token tokenizeSpecial2(int position) {
@@ -371,7 +377,7 @@ public class Lexer {
                 tokenReadPosition = end;
                 break;
             } else {
-                throw new RuntimeException("parse exception: closing quote missing for string");
+                throw new ParserException("closing quote missing for string");
             }
         }
 
@@ -394,7 +400,7 @@ public class Lexer {
 
         char[] value = Arrays.copyOfRange(preprocessedSql, start, end);
 
-        Token token = keywords.get(String.valueOf(value));
+        Token token = keywords.get(String.valueOf(value).toUpperCase());
         if (token != null) {
             tokenReadPosition = end;
             return token;
@@ -414,6 +420,5 @@ public class Lexer {
     }
 
     public static void main(String[] args) throws IllegalAccessException {
-        System.out.println(Integer.valueOf(".   12"));
     }
 }

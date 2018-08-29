@@ -251,6 +251,18 @@ public class LexerTest {
         Assert.assertEquals("''test's''", token.getValue());
     }
 
+    @Test(expected = ParserException.class)
+    public void getNextToken_string_error1() {
+        Lexer lexer = new Lexer("'");
+        lexer.getNextToken();
+    }
+
+    @Test(expected = ParserException.class)
+    public void getNextToken_string_error2() {
+        Lexer lexer = new Lexer("'''");
+        lexer.getNextToken();
+    }
+
     private Lexer.CharType[] getCharTypes(Lexer lexer) {
         return (Lexer.CharType[]) Whitebox.getInternalState(lexer, "charTypes");
     }
