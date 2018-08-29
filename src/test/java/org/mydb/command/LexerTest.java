@@ -185,6 +185,29 @@ public class LexerTest {
     }
 
     @Test
+    public void getNextToken_tokenize2() {
+        String sql = " select 'quote''s test' from dual";
+        Lexer lexer = new Lexer(sql);
+
+        Token select = lexer.getNextToken();
+        Assert.assertEquals(SELECT, select);
+
+        Token value = lexer.getNextToken();
+        Assert.assertEquals(Token.TokenType.VALUE, value.getTokenType());
+        Assert.assertEquals("quote's test", value.getValue());
+
+        Token from = lexer.getNextToken();
+        Assert.assertEquals(FROM, from);
+
+        Token identifier = lexer.getNextToken();
+        Assert.assertEquals(Token.TokenType.IDENTIFIER, identifier.getTokenType());
+        Assert.assertEquals("DUAL", identifier.getValue());
+
+        Token end = lexer.getNextToken();
+        Assert.assertEquals(Token.END, end);
+    }
+
+    @Test
     public void getNextToken_dot1() {
         String sql = ".1";
         Lexer lexer = new Lexer(sql);
@@ -219,6 +242,9 @@ public class LexerTest {
         Token token = lexer.getNextToken();
         Assert.assertEquals(TokenType.VALUE, token.getTokenType());
         Assert.assertEquals(null, token.getValue());
+
+        Token end = lexer.getNextToken();
+        Assert.assertEquals(Token.END, end);
     }
 
     @Test
@@ -229,6 +255,9 @@ public class LexerTest {
         Token token = lexer.getNextToken();
         Assert.assertEquals(TokenType.VALUE, token.getTokenType());
         Assert.assertEquals("hello world", token.getValue());
+
+        Token end = lexer.getNextToken();
+        Assert.assertEquals(Token.END, end);
     }
 
     @Test

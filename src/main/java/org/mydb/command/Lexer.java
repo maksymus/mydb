@@ -374,7 +374,7 @@ public class Lexer {
                 sb.append("'");
                 currentPosition = currentPosition + 2;
             } else if (charTypes[end] == CharType.QT) {
-                tokenReadPosition = end;
+                tokenReadPosition = end + 1;
                 break;
             } else {
                 throw new ParserException("closing quote missing for string");
