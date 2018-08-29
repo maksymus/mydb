@@ -1,6 +1,4 @@
-package org.dashdb.web.logger;
-
-import java.io.IOException;
+package org.mydb.server.web.logger;
 
 public class Logger {
     private Logger() {}

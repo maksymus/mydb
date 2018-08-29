@@ -1,4 +1,4 @@
-package org.dashdb.util;
+package org.mydb.util;
 
 import java.io.Closeable;
 import java.io.IOException;

@@ -1,10 +1,8 @@
-package org.dashdb.web.http;
+package org.mydb.server.web.http;
 
-import org.dashdb.util.StringUtils;
+import org.mydb.util.StringUtils;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -15,7 +13,7 @@ public class HttpRequest {
 
     private HttpRequestLine httpRequestLine;
     private Map<String, HttpHeader> httpHeaders = new HashMap<>();
-    Map<String, String> formData = new HashMap<>();
+    private Map<String, String> formData = new HashMap<>();
 
     public HttpRequestLine getHttpRequestLine() {
         return httpRequestLine;

@@ -1,9 +1,8 @@
-package org.dashdb.web;
+package org.mydb.server.web;
 
 /**
  * TODO web session - jsessionid
  * Stored in web server and holds user last access/preferences etc.
- * Restored
  */
 public class WebSession {
 }

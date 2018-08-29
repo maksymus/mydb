@@ -1,27 +1,17 @@
-package org.dashdb.web.http;
+package org.mydb.server.web.http;
 
 
-import org.dashdb.util.StringUtils;
+import org.mydb.util.StringUtils;
 
 import java.util.Objects;
 
 /**
  * Parsed header.
+ * TODO split header value based on header type i.e. Content-Type: text/html;charset=utf-8
  */
 public class HttpHeader {
     private String name = "";
     private String value = "";
-
-    public HttpHeader(String line) {
-        Objects.requireNonNull(line);
-
-        String[] header = line.split(":");
-
-        if (header.length == 2) {
-            name = header[0].trim().toLowerCase();
-            value = header[1].trim().toLowerCase();
-        }
-    }
 
     public HttpHeader(String name, String value) {
         Objects.requireNonNull(name);

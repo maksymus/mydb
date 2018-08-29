@@ -1,4 +1,4 @@
-package org.dashdb.web.http;
+package org.mydb.server.web.http;
 
 /**
  * HTTP response.

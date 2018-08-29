@@ -1,15 +1,15 @@
-package org.dashdb.web;
+package org.mydb.server.web;
 
-import org.dashdb.web.http.HttpHeader;
-import org.dashdb.web.http.HttpRequest;
-import org.dashdb.web.http.HttpRequest.HttpMethod;
-import org.dashdb.web.http.HttpRequest.HttpRequestLine;
-import org.dashdb.web.http.HttpResponse;
-import org.dashdb.web.http.HttpStatusCode;
-import org.dashdb.web.http.MimeType;
-import org.dashdb.web.logger.Logger;
-import org.dashdb.util.IOUtils;
-import org.dashdb.util.StringUtils;
+import org.mydb.server.web.http.HttpHeader;
+import org.mydb.server.web.http.HttpRequest;
+import org.mydb.server.web.http.HttpRequest.HttpMethod;
+import org.mydb.server.web.http.HttpRequest.HttpRequestLine;
+import org.mydb.server.web.http.HttpResponse;
+import org.mydb.server.web.http.HttpStatusCode;
+import org.mydb.server.web.http.MimeType;
+import org.mydb.server.web.logger.Logger;
+import org.mydb.util.IOUtils;
+import org.mydb.util.StringUtils;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -71,10 +71,10 @@ public class WebThread implements Runnable {
 
     /**
      * Process client's HTTP request.
-     *
      * @return true if client sends Connection: Keep-Alive
      */
     private boolean process() {
+        // keep alive/don't close socket
         boolean keepAlive = false;
 
         HttpResponse httpResponse = new HttpResponse.Builder()
@@ -218,10 +218,14 @@ public class WebThread implements Runnable {
         httpRequest.setHttpHeaders(headers);
 
         // read form data
-        if (httpRequest.hasHeader("content-type", "application/x-www-form-urlencoded")) {
-            HttpHeader contentLengthHeader = httpRequest.getHttpHeaders().get("content-length");
-            Map<String, String> formData = readFormData(contentLengthHeader);
-            httpRequest.setFormData(formData);
+        HttpHeader contentTypeHeader = httpRequest.getHttpHeaders().get("content-type");
+
+        if (contentTypeHeader != null) {
+            if (contentTypeHeader.getValue().indexOf("application/x-www-form-urlencoded") != -1) {
+                HttpHeader contentLengthHeader = httpRequest.getHttpHeaders().get("content-length");
+                Map<String, String> formData = readFormData(contentLengthHeader);
+                httpRequest.setFormData(formData);
+            }
         }
 
         return httpRequest;
@@ -266,6 +270,10 @@ public class WebThread implements Runnable {
         return headers;
     }
 
+    /**
+     * Read encoded form data
+     * param1=value1&param2=value2&param3=value3
+     */
     private Map<String, String> readFormData(HttpHeader contentLengthHeader) {
         HashMap<String, String> data = new HashMap<>();
 
@@ -284,6 +292,7 @@ public class WebThread implements Runnable {
 
         byte[] bytes = new byte[length];
         try {
+            // skip \n
             inputStream.read();
 
             for (int position = 0; position < length;) {

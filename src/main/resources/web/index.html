@@ -2,14 +2,43 @@
 <html lang="en" xmlns="org.dashdb.web.http://www.w3.org/1999/html">
 <head>
     <meta charset="UTF-8">
-    <title>Hello</title>
+    <title>Web Console</title>
+
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <!--<script src="bootstrap.min.js" type="text/javascript"></script>-->
+    <script src="js/jquery-3.3.1.min.js" type="text/javascript"></script>
 </head>
 <body>
-    <form action="/query.do" method="post">
-        <textarea name="sql"></textarea>
-        <textarea name="test"></textarea>
-        <button type="submit">Submit</button>
-    </form>
+    <div class="container">
+        <div class="row">
+        </div>
 
+        <form id="sqlform" method="post">
+            <div class="form-group">
+                <textarea id="sql" class="form-control"></textarea>
+            </div>
+            <button id="submit" type="submit" class="btn btn-primary btn-sm">Submit</button>
+        </form>
+    </div>
+
+    <script type="text/javascript">
+        $("#sqlform").submit(function(event) {
+            var formData = {
+                "sql": $("#sql").val()
+            };
+
+            $.ajax({
+                type        : 'POST',
+                url         : 'index.html', // the url where we want to POST
+                data        : formData, // our data object
+                dataType    : 'json', // what type of data do we expect back from the server
+                encode      : true
+            }).done(function(data) {
+                console.log("got response");
+            });
+
+            event.preventDefault();
+        });
+    </script>
 </body>
 </html>

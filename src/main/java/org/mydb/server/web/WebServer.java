@@ -1,7 +1,7 @@
-package org.dashdb.web;
+package org.mydb.server.web;
 
-import org.dashdb.web.logger.Logger;
-import org.dashdb.util.IOUtils;
+import org.mydb.server.web.logger.Logger;
+import org.mydb.util.IOUtils;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -13,7 +13,7 @@ import java.util.concurrent.Executors;
 
 /**
  * WEB server.
- * Opens server socket, accepts connections delegates request handling.
+ * Opens server socket, accepts connections and delegates request handling to WebThread.
  */
 public class WebServer {
     public static final Logger logger = Logger.forClass(WebServer.class);

@@ -1,5 +1,8 @@
-package org.dashdb.web.http;
+package org.mydb.server.web.http;
 
+/**
+ * TODO support no extension mime types i.e. FORM("", "application/x-www-form-urlencoded")
+ */
 public enum MimeType {
     ICO("ico", "image/x-icon"),
     GIF("gif", "image/gif"),

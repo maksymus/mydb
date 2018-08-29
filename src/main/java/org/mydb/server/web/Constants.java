@@ -1,4 +1,4 @@
-package org.dashdb.web;
+package org.mydb.server.web;
 
 public class Constants {
     /** HTTP version */
