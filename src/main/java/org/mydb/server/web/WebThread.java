@@ -19,7 +19,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -81,6 +80,10 @@ public class WebThread {
                 .build();
 
         HttpRequest httpRequest = parseRequest();
+        // ignore if invalid request
+        if (httpRequest == null)
+            return false;
+
         HttpRequestLine requestLine = httpRequest.getHttpRequestLine();
 
         if (Arrays.asList(HttpMethod.GET, HttpMethod.POST).contains(requestLine.getHttpMethod())) {
@@ -182,7 +185,7 @@ public class WebThread {
         HttpRequestLine httpRequestLine = readRequestLine();
 
         if (httpRequestLine == null)
-            throw new RuntimeException("invalid request");
+            return null;
 
         // read request headers
         Map<String, HttpHeader> headers = readRequestHeader();
@@ -207,8 +210,6 @@ public class WebThread {
 
     private HttpRequestLine readRequestLine() {
         String line = readLine();
-
-        System.out.println("handling request: " + line);
 
         String[] requestLine = line.split(" ");
 
@@ -266,25 +267,26 @@ public class WebThread {
         if (length == 0)
             return data;
 
-        byte[] bytes = new byte[length];
-        try {
-            // skip \n
-            clientSocket.getInputStream().read();
+        char[] bytes = new char[length];
 
+        try {
             for (int position = 0; position < length;) {
-                position = clientSocket.getInputStream().read(bytes, position, length - position);
+                position = socketReader.read(bytes, position, length - position);
             }
         } catch (IOException e) {
             logger.warn("invalid header value", e);
         }
 
-        String str = new String(bytes, Charset.defaultCharset());
+        String str = new String(bytes);
         String[] pairs = str.split("&");
         for (String pair : pairs) {
             int i = pair.indexOf("=");
-            String name = pair.substring(0, i);
-            String value = pair.substring(i, pair.length());
-            data.put(name, StringUtils.urlDecode(value));
+
+            if (i > 0) {
+                String name = pair.substring(0, i);
+                String value = pair.substring(i, pair.length());
+                data.put(name, StringUtils.urlDecode(value));
+            }
         }
 
         return data;

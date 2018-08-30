@@ -91,7 +91,6 @@ public class WebServer {
         try {
             ServerSocketChannel serverChannel = (ServerSocketChannel) selectionKey.channel();
             SocketChannel clientChannel = serverChannel.accept();
-            System.out.println("accepting client " + clientChannel);
             clientChannel.configureBlocking(false);
             clientChannel.register(selector, SelectionKey.OP_READ);
         } catch (IOException e) {
