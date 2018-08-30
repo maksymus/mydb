@@ -9,6 +9,9 @@ public class IOUtils {
      * @param stream stream to close.
      */
     public static <T extends Closeable> void close(T stream) {
+        if (stream == null)
+            return;
+
         try {
             stream.close();
         } catch (IOException ignore) {}

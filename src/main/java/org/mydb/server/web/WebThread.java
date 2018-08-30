@@ -11,57 +11,55 @@ import org.mydb.server.web.logger.Logger;
 import org.mydb.util.IOUtils;
 import org.mydb.util.StringUtils;
 
-import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 /**
  * Thread to handle each http request.
  */
-public class WebThread implements Runnable {
+public class WebThread {
     public static final Logger logger = Logger.forClass(WebServer.class);
 
     private Socket clientSocket;
-    private InputStream inputStream;
-    private OutputStream outputStream;
 
-    private List<Consumer<WebThread>> lifeCycleObservers = new ArrayList<>();
+    private InputStream inputStream;
+
+    private BufferedReader socketReader;
+    private BufferedWriter socketWriter;
 
     public WebThread(Socket clientSocket) {
         this.clientSocket = clientSocket;
 
         try {
             this.inputStream = clientSocket.getInputStream();
-            this.outputStream = new BufferedOutputStream(clientSocket.getOutputStream());
+
+            this.socketReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            this.socketWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
         } catch (IOException e) {
             throw new RuntimeException("failed to init web thread", e);
         }
     }
 
-    @Override
-    public void run() {
+    public boolean run() {
         try {
-            while (clientSocket != null) {
-                if (!process()) break;
-            }
+            return process();
         } catch (Throwable t) {
             HttpResponse httpResponse = new HttpResponse.Builder()
                     .withHttpStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
                     .build();
             write(httpResponse);
-            throw t;
-        } finally {
             stopWebThread();
+            throw t;
         }
     }
 
@@ -117,10 +115,8 @@ public class WebThread implements Runnable {
         IOUtils.close(clientSocket);
 
         clientSocket = null;
-        inputStream = null;
-        outputStream = null;
-
-        lifeCycleObservers.forEach(obs -> obs.accept(this));
+        socketReader = null;
+        socketWriter = null;
     }
 
     /**
@@ -129,37 +125,12 @@ public class WebThread implements Runnable {
      * @return non null string.
      */
     private String readLine() {
-        StringBuilder message = new StringBuilder();
-
         try {
-            while (true) {
-                int read = inputStream.read();
-
-                // connection closed
-                if (read == -1)
-                    throw new RuntimeException("client closed connection");
-
-                // line end
-                if (read == Constants.CR)
-                    break;
-
-                // carrier return/line end
-                if (read == Constants.CR) {
-                    int next = inputStream.read();
-                    if (next == Constants.LF)
-                        break;
-
-                    message.append((char) read);
-                    message.append((char) next);
-                } else {
-                    message.append((char) read);
-                }
-            }
+            String line = socketReader.readLine();
+            return line != null ? line : "";
         } catch (IOException e) {
-            throw new RuntimeException("failed to read line", e);
+            throw new RuntimeException("failed to read read data", e);
         }
-
-        return message.toString();
     }
 
     /**
@@ -175,17 +146,20 @@ public class WebThread implements Runnable {
         byte[] message = httpResponse.getMessage();
 
         String responseLine = createResponseLine(httpResponse.getHttpStatusCode()) + CRLF;
-        String contentLength = message.length > 0 ? "Content-Length: " + message.length + CRLF : "";
+        String contentLength = message != null && message.length > 0 ? "Content-Length: " + message.length + CRLF : "";
         String contentType = !StringUtils.isEmpty(httpResponse.getContentType()) ?
                 "Content-Type: " + httpResponse.getContentType() + CRLF : "";
 
         try {
-            outputStream.write((responseLine).getBytes());
-            outputStream.write((contentLength).getBytes());
-            outputStream.write((contentType).getBytes());
-            outputStream.write((CRLF).getBytes());
-            outputStream.write(message);
-            outputStream.flush();
+            socketWriter.write((responseLine));
+            socketWriter.write((contentLength));
+            socketWriter.write((contentType));
+            socketWriter.write((CRLF));
+
+            if (message != null)
+                socketWriter.write(new String(message));
+
+            socketWriter.flush();
         } catch (IOException e) {
             throw new RuntimeException("failed to write message", e);
         }
@@ -233,6 +207,8 @@ public class WebThread implements Runnable {
 
     private HttpRequestLine readRequestLine() {
         String line = readLine();
+
+        System.out.println("handling request: " + line);
 
         String[] requestLine = line.split(" ");
 
@@ -293,10 +269,10 @@ public class WebThread implements Runnable {
         byte[] bytes = new byte[length];
         try {
             // skip \n
-            inputStream.read();
+            clientSocket.getInputStream().read();
 
             for (int position = 0; position < length;) {
-                position = inputStream.read(bytes, position, length - position);
+                position = clientSocket.getInputStream().read(bytes, position, length - position);
             }
         } catch (IOException e) {
             logger.warn("invalid header value", e);
@@ -361,10 +337,6 @@ public class WebThread implements Runnable {
         }
 
         return MimeType.OSTREAM;
-    }
-
-    public void addLifeCycleObserver(Consumer<WebThread> consumer) {
-        lifeCycleObservers.add(consumer);
     }
 }
 
