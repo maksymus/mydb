@@ -23,14 +23,23 @@ public class WebServer {
 
     private Set<WebThread> webThreads = ConcurrentHashMap.newKeySet();
 
+    private Object shutdownLock = new Object();
+
     public void start() {
         init();
         accept();
     }
 
     public void stop() {
-        IOUtils.close(serverSocket);
-        serverSocket = null;
+        System.out.println("stopping web server");
+
+        synchronized (shutdownLock) {
+            IOUtils.close(serverSocket);
+            serverSocket = null;
+        }
+
+        webThreads.forEach(webThread -> webThread.stop());
+        webThreads.clear();
     }
 
     private void init() {
@@ -43,16 +52,21 @@ public class WebServer {
 
     private void accept() {
         while (serverSocket != null) {
-            try {
-                Socket clientSocket = serverSocket.accept();
+            synchronized (shutdownLock) {
+                if (serverSocket == null)
+                    break;
 
-                WebThread webThread = new WebThread(clientSocket);
-                webThread.addLifeCycleObserver(this::onWebThreadStop);
-                webThreads.add(webThread);
+                try {
+                    Socket clientSocket = serverSocket.accept();
 
-                webThreadExecutorService.submit(webThread);
-            } catch (IOException e) {
-                logger.error("failed to accept connection", e);
+                    WebThread webThread = new WebThread(clientSocket);
+                    webThread.addLifeCycleObserver(this::onWebThreadStop);
+                    webThreads.add(webThread);
+
+                    webThreadExecutorService.submit(webThread);
+                } catch (IOException e) {
+                    logger.error("failed to accept connection", e);
+                }
             }
         }
     }
@@ -63,6 +77,11 @@ public class WebServer {
 
     public static void main(String[] args) {
         WebServer server = new WebServer();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            server.stop();
+        }));
+
         server.start();
     }
 }
