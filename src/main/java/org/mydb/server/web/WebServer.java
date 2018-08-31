@@ -10,6 +10,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -25,7 +27,11 @@ import java.util.concurrent.Future;
 public class WebServer {
     public static final Logger logger = Logger.forClass(WebServer.class);
 
-    private ExecutorService webThreadExecutorService = Executors.newFixedThreadPool(20);
+    public static final int PORT = 9090;
+    public static final int N_THREADS_IN_POOL = 20;
+    public static final int SOCKET_READ_TIME_OUT_SEC = 10;
+
+    private ExecutorService webThreadExecutorService = Executors.newFixedThreadPool(N_THREADS_IN_POOL);
     private ExecutorCompletionService<SocketChannel> executorCompletionService =
             new ExecutorCompletionService<>(webThreadExecutorService);
 
@@ -37,13 +43,14 @@ public class WebServer {
             selector = Selector.open();
 
             serverChannel = ServerSocketChannel.open();
-            serverChannel.bind(new InetSocketAddress(9090));
+            serverChannel.bind(new InetSocketAddress(PORT));
             serverChannel.configureBlocking(false);
 
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 
             while (true) {
                 keepAliveChannels();
+                cleanUpTimedOutChannels();
 
                 // block for 10 ms then select
                 if (selector.select(10) == 0)
@@ -87,18 +94,45 @@ public class WebServer {
         }
     }
 
+    private void cleanUpTimedOutChannels() {
+        Set<SelectionKey> keys = selector.keys();
+
+        for (SelectionKey key : keys) {
+            boolean isValidReading = key.isValid() && (key.interestOps() & SelectionKey.OP_READ) > 0;
+            if (isValidReading || !key.isValid()) {
+                Object attachment = key.attachment();
+                if (attachment == null || !(attachment instanceof LocalDateTime))
+                    continue;
+
+                LocalDateTime lastAccessTime = (LocalDateTime) attachment;
+                if (lastAccessTime.until(LocalDateTime.now(), ChronoUnit.SECONDS) > SOCKET_READ_TIME_OUT_SEC) {
+                    key.cancel();
+                    IOUtils.close(((SocketChannel) key.channel()).socket());
+                    IOUtils.close(key.channel());
+                }
+            }
+        }
+    }
+
     private void accept(SelectionKey selectionKey)  {
         try {
+            // accept connection
             ServerSocketChannel serverChannel = (ServerSocketChannel) selectionKey.channel();
             SocketChannel clientChannel = serverChannel.accept();
             clientChannel.configureBlocking(false);
-            clientChannel.register(selector, SelectionKey.OP_READ);
+
+            // register with selector and set access time to track time outs
+            SelectionKey clientKey = clientChannel.register(selector, SelectionKey.OP_READ);
+            clientKey.attach(LocalDateTime.now());
         } catch (IOException e) {
             logger.error("failed to accept", e);
         }
     }
 
     private void read(SelectionKey selectionKey) {
+        // reset last access time
+        selectionKey.attach(LocalDateTime.now());
+
         try {
             SocketChannel clientChannel = (SocketChannel) selectionKey.channel();
 
