@@ -132,7 +132,7 @@ public class WebThread {
             String line = socketReader.readLine();
             return line != null ? line : "";
         } catch (IOException e) {
-            throw new RuntimeException("failed to read read data", e);
+            throw new RuntimeException("failed to read data", e);
         }
     }
 

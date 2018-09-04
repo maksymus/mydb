@@ -23,6 +23,10 @@ import java.util.concurrent.Future;
 /**
  * WEB server.
  * Opens server socket, accepts connections and delegates request handling to WebThread.
+ *
+ * NIO non blocking server.
+ * Accepts connections, switches channels to blocking mode when ready to read and  back to non blocking when
+ * request processing is done.
  */
 public class WebServer {
     public static final Logger logger = Logger.forClass(WebServer.class);
@@ -45,7 +49,6 @@ public class WebServer {
             serverChannel = ServerSocketChannel.open();
             serverChannel.bind(new InetSocketAddress(PORT));
             serverChannel.configureBlocking(false);
-
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 
             while (true) {
@@ -72,45 +75,6 @@ public class WebServer {
             }
         } catch (IOException e) {
             throw new RuntimeException("failed to start web server", e);
-        }
-    }
-
-    private void keepAliveChannels() throws IOException {
-        Future<SocketChannel> completedWebThread;
-        while ((completedWebThread = executorCompletionService.poll()) != null) {
-            SocketChannel clientChannel = null;
-            try {
-                clientChannel = completedWebThread.get();
-
-                // if connection: keep-alive
-                if (clientChannel != null) {
-                    clientChannel.configureBlocking(false);
-                    clientChannel.register(selector, SelectionKey.OP_READ);
-                }
-            } catch (InterruptedException | ExecutionException e) {
-                logger.error("execution error", e);
-                IOUtils.close(clientChannel);
-            }
-        }
-    }
-
-    private void cleanUpTimedOutChannels() {
-        Set<SelectionKey> keys = selector.keys();
-
-        for (SelectionKey key : keys) {
-            boolean isValidReading = key.isValid() && (key.interestOps() & SelectionKey.OP_READ) > 0;
-            if (isValidReading || !key.isValid()) {
-                Object attachment = key.attachment();
-                if (attachment == null || !(attachment instanceof LocalDateTime))
-                    continue;
-
-                LocalDateTime lastAccessTime = (LocalDateTime) attachment;
-                if (lastAccessTime.until(LocalDateTime.now(), ChronoUnit.SECONDS) > SOCKET_READ_TIME_OUT_SEC) {
-                    key.cancel();
-                    IOUtils.close(((SocketChannel) key.channel()).socket());
-                    IOUtils.close(key.channel());
-                }
-            }
         }
     }
 
@@ -142,6 +106,7 @@ public class WebServer {
 
             executorCompletionService.submit(() -> {
                 Socket socket = clientChannel.socket();
+                socket.setSoTimeout(SOCKET_READ_TIME_OUT_SEC * 1000);
 
                 WebThread webThread = new WebThread(socket);
                 boolean keepAlive = webThread.run();
@@ -154,6 +119,47 @@ public class WebServer {
             });
         } catch (IOException e) {
             logger.error("failed to read", e);
+        }
+    }
+
+    /**
+     * Check executorCompletionService completed pool and process completed channels.
+     */
+    private void keepAliveChannels() throws IOException {
+        Future<SocketChannel> completedWebThread;
+        while ((completedWebThread = executorCompletionService.poll()) != null) {
+            SocketChannel clientChannel = null;
+            try {
+                clientChannel = completedWebThread.get();
+
+                // if connection: keep-alive
+                if (clientChannel != null) {
+                    clientChannel.configureBlocking(false);
+                    clientChannel.register(selector, SelectionKey.OP_READ);
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                logger.error("execution error", e);
+                IOUtils.close(clientChannel);
+            }
+        }
+    }
+
+    private void cleanUpTimedOutChannels() {
+        Set<SelectionKey> keys = selector.keys();
+
+        for (SelectionKey key : keys) {
+            if (key.isValid() && (key.interestOps() & SelectionKey.OP_READ) > 0) {
+                Object attachment = key.attachment();
+                if (attachment == null || !(attachment instanceof LocalDateTime))
+                    continue;
+
+                LocalDateTime lastAccessTime = (LocalDateTime) attachment;
+                if (lastAccessTime.until(LocalDateTime.now(), ChronoUnit.SECONDS) > SOCKET_READ_TIME_OUT_SEC) {
+                    key.cancel();
+                    IOUtils.close(((SocketChannel) key.channel()).socket());
+                    IOUtils.close(key.channel());
+                }
+            }
         }
     }
 
