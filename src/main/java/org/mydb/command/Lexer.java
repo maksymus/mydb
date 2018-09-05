@@ -36,8 +36,11 @@ public class Lexer {
     /** Array of char types after preprocessing */
     private CharType[] charTypes;
 
-    /** Current position of next token */
+    /** Position of next token */
     private int tokenReadPosition;
+
+    /** Current token set after token read */
+    private Token currentToken;
 
     /** Keywords */
     private static final Map<String, Token> keywords = new HashMap<>();
@@ -69,6 +72,10 @@ public class Lexer {
         preprocess();
     }
 
+    public Token getCurrentToken() {
+        return currentToken;
+    }
+
     public Token getNextToken() {
         try {
             if (tokenReadPosition >= preprocessedSql.length)
@@ -78,28 +85,37 @@ public class Lexer {
                 tokenReadPosition++;
 
             CharType charType = this.charTypes[tokenReadPosition];
+            Token token = getNextToken(charType);
 
-            if (charType == CharType.SPECIAL1) {
-                return tokenizeSpecial1(tokenReadPosition);
-            } else if (charType == CharType.SPECIAL2) {
-                return tokenizeSpecial2(tokenReadPosition);
-            } else if (charType == CharType.NAME) {
-                return tokenizeName(tokenReadPosition);
-            } else if (charType == CharType.NUMBER) {
-                return tokenizeNumber(tokenReadPosition);
-            } else if (charType == CharType.DOT) {
-                return tokenizeDot(tokenReadPosition);
-            } else if (charType == CharType.QT) {
-                return tokenizeString(tokenReadPosition);
-            } else if (charType == CharType.END) {
-                return Token.END;
-            }
+            if (token != null)
+                return (this.currentToken = token);
 
             throw new ParserException("unknown token at position " + tokenReadPosition);
         } catch (ParserException e) {
             tokenReadPosition = 0;
+            currentToken = null;
             throw e;
         }
+    }
+
+    private Token getNextToken(CharType charType) {
+        if (charType == CharType.SPECIAL1) {
+            return tokenizeSpecial1(tokenReadPosition);
+        } else if (charType == CharType.SPECIAL2) {
+            return tokenizeSpecial2(tokenReadPosition);
+        } else if (charType == CharType.NAME) {
+            return tokenizeName(tokenReadPosition);
+        } else if (charType == CharType.NUMBER) {
+            return tokenizeNumber(tokenReadPosition);
+        } else if (charType == CharType.DOT) {
+            return tokenizeDot(tokenReadPosition);
+        } else if (charType == CharType.QT) {
+            return tokenizeString(tokenReadPosition);
+        } else if (charType == CharType.END) {
+            return tokenizeEnd();
+        }
+
+        return null;
     }
 
     /**
@@ -384,6 +400,11 @@ public class Lexer {
         return new Token(Token.TokenType.VALUE, sb.length() > 0 ? sb.toString(): null);
     }
 
+    private Token tokenizeEnd() {
+        tokenReadPosition++;
+        return Token.END;
+    }
+
     private Token getIdentifier(int position) {
         int start = position;
         int end = readWhile(position, CharType.NAME, CharType.NUMBER);
@@ -396,7 +417,7 @@ public class Lexer {
 
     private Token getKeyword(int position) {
         int start = position;
-        int end = readWhile(position, CharType.NAME);
+        int end = readWhile(position, CharType.NAME, CharType.NUMBER);
 
         char[] value = Arrays.copyOfRange(preprocessedSql, start, end);
 
