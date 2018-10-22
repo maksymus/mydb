@@ -33,20 +33,20 @@ class Token<T> {
 
     // keywords
     static final Token CREATE = new Token(TokenType.KEYWORD, "CREATE");
-    static final Token DATE = new Token(TokenType.KEYWORD, "DATE");
     static final Token FROM = new Token(TokenType.KEYWORD, "FROM");
     static final Token INDEX = new Token(TokenType.KEYWORD, "INDEX");
     static final Token INSERT = new Token(TokenType.KEYWORD, "INSERT");
     static final Token INTO = new Token(TokenType.KEYWORD, "INTO");
     static final Token KEY = new Token(TokenType.KEYWORD, "KEY");
     static final Token NOT = new Token(TokenType.KEYWORD, "NOT");
-    static final Token NUMBER = new Token(TokenType.KEYWORD, "NUMBER");
     static final Token PRIMARY = new Token(TokenType.KEYWORD, "PRIMARY");
     static final Token SELECT = new Token(TokenType.KEYWORD, "SELECT");
     static final Token TABLE = new Token(TokenType.KEYWORD, "TABLE");
     static final Token VALUES = new Token(TokenType.KEYWORD, "VALUES");
-    static final Token VARCHAR = new Token(TokenType.KEYWORD, "VARCHAR");
     static final Token WHERE = new Token(TokenType.KEYWORD, "WHERE");
+    static final Token NUMBER = new Token(TokenType.KEYWORD, "NUMBER");
+    static final Token VARCHAR = new Token(TokenType.KEYWORD, "VARCHAR");
+    static final Token DATE = new Token(TokenType.KEYWORD, "DATE");
 
     enum TokenType {
         IDENTIFIER,             // table, column names etc
