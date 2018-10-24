@@ -1,6 +1,8 @@
 package org.mydb.command;
 
 import org.mydb.command.ddl.CreateTableCommand;
+import org.mydb.table.Column;
+import org.mydb.table.Table;
 import org.mydb.table.datatype.DataType;
 import org.mydb.table.datatype.WithPrecision;
 import org.mydb.table.datatype.WithScale;
@@ -30,7 +32,7 @@ public class Parser {
                     return parseSelect();
                 }
             case END:
-                result = new Object(); // no operation
+                return new Object(); // no operation
         }
 
         if (result == null)
@@ -47,11 +49,11 @@ public class Parser {
         return null;
     }
 
-    private Object parseInsert() {
+    private Prepared parseInsert() {
         return null;
     }
 
-    private Object parseSelect() {
+    private Prepared parseSelect() {
         return null;
     }
 
@@ -59,22 +61,28 @@ public class Parser {
         Token<String> tableName = next(Token.TokenType.IDENTIFIER);
         CreateTableCommand createTableCommand = new CreateTableCommand();
 
-        createTableCommand.setName(tableName.getValue());
+        Table table = new Table();
+        table.setName(tableName.getValue());
+
+        createTableCommand.setTable(table);
 
         if (nextIf(Token.OPEN_PAREN)) {
             do {
-                parseColumnDefinition(createTableCommand);
+                parseColumnDefinition(table);
             } while (nextIf(Token.COMA));
 
             next(Token.CLOSE_PAREN);
         }
 
-        return null;
+        return createTableCommand;
     }
 
-    private void parseColumnDefinition(CreateTableCommand createTableCommand) {
+    private void parseColumnDefinition(Table table) {
+        Column column = new Column();
+
         // column name
         Token<String> columnName = next(Token.TokenType.IDENTIFIER);
+        column.setName(columnName.getValue());
 
         // data type
         Token<String> columnTypeToken = next(Token.TokenType.KEYWORD);
@@ -84,18 +92,23 @@ public class Parser {
         if (dataType == null) {
             throw new ParserException(String.format("data type not supported: %s", value));
         }
+        column.setDataType(dataType);
 
         if (dataType instanceof WithPrecision) {
             if (nextIf(Token.OPEN_PAREN)) {
                 int precision = readInteger((i) -> i >= 0);
+                column.setPrecision(precision);
 
                 if (dataType instanceof WithScale && nextIf(Token.COMA)) {
                     int scale = readInteger((i) -> i >= 0);
+                    column.setScale(scale);
                 }
 
                 next(Token.CLOSE_PAREN);
             }
         }
+
+        table.addColumn(column);
     }
 
     // low level parser commands ======================================================================================
@@ -108,12 +121,13 @@ public class Parser {
 
         boolean match = Arrays.stream(tokens).anyMatch(token -> token == currentToken);
 
-        if (!match)
+        if (!match) {
             throw new ParserException(String.format("Expected %s but got %s",
                     Arrays.asList(tokens).stream()
                             .map(t -> String.valueOf(t.getValue()))
                             .collect(Collectors.joining(", ")),
                     currentToken.getValue()));
+        }
 
         lexer.getNextToken();
 

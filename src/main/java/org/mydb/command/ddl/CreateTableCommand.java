@@ -1,15 +1,16 @@
 package org.mydb.command.ddl;
 
 import org.mydb.command.Prepared;
+import org.mydb.table.Table;
 
 public class CreateTableCommand implements Prepared {
-    private String name;
+    private Table table;
 
-    public String getName() {
-        return name;
+    public Table getTable() {
+        return table;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setTable(Table table) {
+        this.table = table;
     }
 }
