@@ -1,6 +1,9 @@
 package org.mydb.table.datatype;
 
-class Number extends DataType implements WithPrecision, WithScale {
+/**
+ * Number data type.
+ */
+public class Number extends DataType implements WithPrecision, WithScale {
     @Override
     public int maxPrecision() {
         return 10;

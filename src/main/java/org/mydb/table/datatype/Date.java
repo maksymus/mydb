@@ -1,4 +1,7 @@
 package org.mydb.table.datatype;
 
-class Date extends DataType {
+/**
+ * Date data type
+ */
+public class Date extends DataType {
 }

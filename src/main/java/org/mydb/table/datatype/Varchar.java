@@ -1,6 +1,9 @@
 package org.mydb.table.datatype;
 
-class Varchar extends DataType implements WithPrecision {
+/**
+ * Varchar data type
+ */
+public class Varchar extends DataType implements WithPrecision {
     @Override
     public int maxPrecision() {
         return Integer.MAX_VALUE;
