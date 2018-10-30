@@ -1,8 +1,8 @@
-package org.mydb.table;
+package org.mydb.engine.table;
 
-import org.mydb.table.datatype.DataType;
-import org.mydb.table.datatype.WithPrecision;
-import org.mydb.table.datatype.WithScale;
+import org.mydb.engine.table.datatype.DataType;
+import org.mydb.engine.table.datatype.WithPrecision;
+import org.mydb.engine.table.datatype.WithScale;
 
 import java.util.Optional;
 

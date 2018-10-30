@@ -2,10 +2,11 @@ package org.mydb.command;
 
 import org.junit.Test;
 import org.mydb.command.ddl.CreateTableCommand;
-import org.mydb.table.Column;
-import org.mydb.table.Table;
-import org.mydb.table.datatype.Number;
-import org.mydb.table.datatype.Varchar;
+import org.mydb.engine.SessionImpl;
+import org.mydb.engine.table.Column;
+import org.mydb.engine.table.Table;
+import org.mydb.engine.table.datatype.Number;
+import org.mydb.engine.table.datatype.Varchar;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -19,7 +20,7 @@ public class ParserTest {
                 "   NAME VARCHAR(20)\n" +
                 ");");
 
-        Parser parser = new Parser(lexer);
+        Parser parser = new Parser(new SessionImpl(), lexer);
         CreateTableCommand createCommand = (CreateTableCommand) parser.parse();
 
         Table table = createCommand.getTable();

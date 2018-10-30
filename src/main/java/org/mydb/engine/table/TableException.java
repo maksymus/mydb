@@ -1,4 +1,4 @@
-package org.mydb.table;
+package org.mydb.engine.table;
 
 public class TableException extends RuntimeException {
     public TableException() {

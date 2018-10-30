@@ -440,6 +440,10 @@ public class Lexer {
         return end;
     }
 
+    public String getOriginalSql() {
+        return originalSql;
+    }
+
     public static void main(String[] args) throws IllegalAccessException {
     }
 }

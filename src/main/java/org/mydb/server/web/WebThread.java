@@ -31,17 +31,16 @@ public class WebThread {
 
     private Socket clientSocket;
 
-    private InputStream inputStream;
-
     private BufferedReader socketReader;
     private BufferedWriter socketWriter;
 
-    public WebThread(Socket clientSocket) {
+    private WebSession webSession;
+
+    public WebThread(Socket clientSocket, WebSession webSession) {
         this.clientSocket = clientSocket;
+        this.webSession = webSession;
 
         try {
-            this.inputStream = clientSocket.getInputStream();
-
             this.socketReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             this.socketWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
         } catch (IOException e) {

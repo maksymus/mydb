@@ -4,23 +4,36 @@ import org.mydb.command.ddl.CreateTableCommand;
 import org.mydb.command.dml.InsertOperation;
 import org.mydb.command.dml.NoOperation;
 import org.mydb.command.dml.SelectOperation;
-import org.mydb.table.Column;
-import org.mydb.table.Table;
-import org.mydb.table.datatype.DataType;
-import org.mydb.table.datatype.WithPrecision;
-import org.mydb.table.datatype.WithScale;
+import org.mydb.engine.Session;
+import org.mydb.engine.table.Column;
+import org.mydb.engine.table.Table;
+import org.mydb.engine.table.datatype.DataType;
+import org.mydb.engine.table.datatype.WithPrecision;
+import org.mydb.engine.table.datatype.WithScale;
 
 import java.util.Arrays;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+/**
+ * SQL statement parser.
+ */
 public class Parser {
+
+    /** Current session */
+    private Session session;
+
+    /** Lexer used by parser */
     private Lexer lexer;
 
-    public Parser(Lexer lexer) {
+    public Parser(Session session, Lexer lexer) {
+        this.session = session;
         this.lexer = lexer;
     }
 
+    /**
+     * Parse statement to get prepared statement.
+     */
     public Prepared parse() {
         Prepared result = null;
 
@@ -35,7 +48,7 @@ public class Parser {
                     return parseSelect();
                 }
             case END:
-                return new NoOperation(); // no operation
+                return new NoOperation(lexer.getOriginalSql()); // no operation
         }
 
         if (result == null)
@@ -53,16 +66,16 @@ public class Parser {
     }
 
     private Prepared parseInsert() {
-        return new InsertOperation();
+        return new InsertOperation(lexer.getOriginalSql());
     }
 
     private Prepared parseSelect() {
-        return new SelectOperation();
+        return new SelectOperation(lexer.getOriginalSql());
     }
 
     private Prepared parseCreateTable() {
         Token<String> tableName = next(Token.TokenType.IDENTIFIER);
-        CreateTableCommand createTableCommand = new CreateTableCommand();
+        CreateTableCommand createTableCommand = new CreateTableCommand(lexer.getOriginalSql());
 
         Table table = new Table();
         table.setName(tableName.getValue());

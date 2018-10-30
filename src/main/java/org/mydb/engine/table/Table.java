@@ -1,4 +1,4 @@
-package org.mydb.table;
+package org.mydb.engine.table;
 
 import java.util.ArrayList;
 import java.util.Collections;

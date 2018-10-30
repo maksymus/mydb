@@ -87,6 +87,8 @@ public class WebServer {
 
             // register with selector and set access time to track time outs
             SelectionKey clientKey = clientChannel.register(selector, SelectionKey.OP_READ);
+
+            // todo create and store session
             clientKey.attach(LocalDateTime.now());
         } catch (IOException e) {
             logger.error("failed to accept", e);
@@ -108,7 +110,7 @@ public class WebServer {
                 Socket socket = clientChannel.socket();
                 socket.setSoTimeout(SOCKET_READ_TIME_OUT_SEC * 1000);
 
-                WebThread webThread = new WebThread(socket);
+                WebThread webThread = new WebThread(socket, null);
                 boolean keepAlive = webThread.run();
 
                 if (keepAlive)
@@ -155,6 +157,8 @@ public class WebServer {
 
                 LocalDateTime lastAccessTime = (LocalDateTime) attachment;
                 if (lastAccessTime.until(LocalDateTime.now(), ChronoUnit.SECONDS) > SOCKET_READ_TIME_OUT_SEC) {
+                    // todo close session
+
                     key.cancel();
                     IOUtils.close(((SocketChannel) key.channel()).socket());
                     IOUtils.close(key.channel());

@@ -1,4 +1,4 @@
-package org.mydb.table.datatype;
+package org.mydb.engine.table.datatype;
 
 import java.util.HashMap;
 import java.util.Map;
