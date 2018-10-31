@@ -26,9 +26,13 @@ public class Parser {
     /** Lexer used by parser */
     private Lexer lexer;
 
-    public Parser(Session session, Lexer lexer) {
+    Parser(Session session, Lexer lexer) {
         this.session = session;
         this.lexer = lexer;
+    }
+
+    public Command command() {
+        return new Command(session, parse());
     }
 
     /**

@@ -1,5 +1,13 @@
 package org.mydb.jdbc;
 
+import org.mydb.command.Command;
+import org.mydb.command.ParserException;
+import org.mydb.command.ParserFactory;
+import org.mydb.engine.Session;
+import org.mydb.util.IdGenerator;
+import org.mydb.util.cache.Cache;
+import org.mydb.util.cache.LRUCache;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -7,14 +15,28 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 
 public class JdbcStatement implements Statement {
-    private JdbcConnection connection;
+    private final long id;
+    private final JdbcConnection connection;
+    private Cache<String, Command> commandCache = new LRUCache<>(100);
+    private ParserFactory parserFactory = new ParserFactory();
 
     public JdbcStatement(JdbcConnection connection) {
+        this.id = IdGenerator.generate(IdGenerator.Type.STATEMENT);
         this.connection = connection;
     }
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
+        Session session = connection.getSession();
+
+        try {
+            Command command = commandCache.putIfAbsent(sql,
+                    () -> parserFactory.newParser(session, sql).command());
+            System.out.println(command);
+        } catch (ParserException e) {
+            throw new SQLException(e);
+        }
+
         return null;
     }
 

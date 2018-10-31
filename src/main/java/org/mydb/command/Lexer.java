@@ -443,7 +443,4 @@ public class Lexer {
     public String getOriginalSql() {
         return originalSql;
     }
-
-    public static void main(String[] args) throws IllegalAccessException {
-    }
 }

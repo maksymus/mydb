@@ -4,6 +4,7 @@ import org.mydb.DbException;
 import org.mydb.engine.Engine;
 import org.mydb.engine.Session;
 import org.mydb.engine.SessionFactory;
+import org.mydb.util.IdGenerator;
 
 import java.sql.*;
 import java.util.Map;
@@ -11,11 +12,13 @@ import java.util.Properties;
 import java.util.concurrent.Executor;
 
 public class JdbcConnection implements Connection {
-    private Session session;
+    private final Session session;
+    private final long id;
 
     public JdbcConnection(String url, Properties info) {
         SessionFactory engine = Engine.getInstance();
         this.session = engine.createSession();
+        this.id = IdGenerator.generate(IdGenerator.Type.CONNECTION);
     }
 
     @Override
@@ -290,5 +293,10 @@ public class JdbcConnection implements Connection {
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return false;
+    }
+
+    // Internal =============================================================================
+    Session getSession() {
+        return session;
     }
 }
