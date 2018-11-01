@@ -3,7 +3,6 @@ package org.mydb.jdbc;
 import org.mydb.command.Command;
 import org.mydb.command.ParserException;
 import org.mydb.command.ParserFactory;
-import org.mydb.engine.Session;
 import org.mydb.util.IdGenerator;
 import org.mydb.util.cache.Cache;
 import org.mydb.util.cache.LRUCache;
@@ -18,21 +17,20 @@ public class JdbcStatement implements Statement {
     private final long id;
     private final JdbcConnection connection;
     private Cache<String, Command> commandCache = new LRUCache<>(100);
-    private ParserFactory parserFactory = new ParserFactory();
+    private ParserFactory parserFactory;
 
     public JdbcStatement(JdbcConnection connection) {
         this.id = IdGenerator.generate(IdGenerator.Type.STATEMENT);
         this.connection = connection;
+        this.parserFactory = new ParserFactory(connection.getSession());
     }
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
-        Session session = connection.getSession();
+        parserFactory.setSql(sql);
 
         try {
-            Command command = commandCache.putIfAbsent(sql,
-                    () -> parserFactory.newParser(session, sql).command());
-            System.out.println(command);
+            Command command = commandCache.putIfAbsent(sql, () -> parserFactory.getObject().command());
         } catch (ParserException e) {
             throw new SQLException(e);
         }
