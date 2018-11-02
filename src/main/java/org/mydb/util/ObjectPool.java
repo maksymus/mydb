@@ -8,7 +8,7 @@ import java.util.function.Supplier;
 /**
  * Pool of objects.
  */
-class ObjectPool<T> {
+public class ObjectPool<T> {
 
     /** Default pool size */
     public static final int DEFAULT_POOL_SIZE = 10;
@@ -22,7 +22,7 @@ class ObjectPool<T> {
     /** Number of objects currently checked out */
     private int acquiredSize;
 
-    /** Object pool */
+    /** Object pool: first part (0 to acquiredSize) is used, second part (acquiredSize to size) is free */
     private Object[] pool;
 
     /**
@@ -49,6 +49,7 @@ class ObjectPool<T> {
     }
 
     public synchronized T acquire(Function<T, T> initiate) {
+        // resize if if all objects in pool are used
         if (acquiredSize >= pool.length) {
             Object[] newPool = Arrays.copyOf(pool, pool.length * 2);
             for (int i = pool.length; i < newPool.length; i++) {
@@ -60,6 +61,7 @@ class ObjectPool<T> {
             pool = newPool;
         }
 
+        // run callback and return object
         return initiate.apply((T) pool[acquiredSize++]);
     }
 
@@ -77,7 +79,10 @@ class ObjectPool<T> {
         if (position >= acquiredSize)
             return;
 
+        // run callback
         clear.apply(object);
+
+        // move objects to free side
         swap(position, acquiredSize - 1);
 
         if (acquiredSize > 0)
